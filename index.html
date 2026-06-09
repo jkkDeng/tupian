@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>全自动图片画廊</title>
+  <title>我的图片画廊</title>
   <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
   <style>
     * {
@@ -26,7 +26,7 @@
     body.light {
       --bg-main: #f5f7ff;
       --bg-gradient: radial-gradient(circle at 50% 50%, #e8ecff, #f5f7ff);
-      --grid-bg: #ffffff;
+      --grid-bg: #fff;
       --grid-border: #d0d6f0;
       --accent-color: #5c44cc;
       --menu-bg: rgba(255,255,255,0.95);
@@ -37,34 +37,31 @@
     body {
       min-height: 100vh;
       background: var(--bg-main);
-      background-image: var(--bg-gradient);
+      background: var(--bg-gradient);
       transition: 0.4s;
     }
 
     .grid-container {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-      gap: 3px;
+      gap: 4px;
+      padding: 4px;
       width: 100vw;
       min-height: 100vh;
-      padding: 3px;
     }
 
-    /* ========== 核心修复：悬浮层级 ========== */
     .grid-item {
+      position: relative;
+      z-index: 1;
       background: var(--grid-bg);
       border: 1px solid var(--grid-border);
-      border-radius: 4px;
+      border-radius: 5px;
       overflow: hidden;
-      cursor: pointer;
       transition: 0.25s ease;
       transform-style: preserve-3d;
       aspect-ratio: 1/1;
-      position: relative;
-      z-index: 1; /* 默认层级 */
     }
 
-    /* 悬浮时提高层级！永远在最上面 */
     .grid-item:hover {
       z-index: 9999 !important;
     }
@@ -86,7 +83,7 @@
       top: 50%;
       right: 0;
       transform: translateY(-50%);
-      z-index: 999999; /* 菜单永远最高 */
+      z-index: 999999;
     }
 
     .menu-trigger {
@@ -160,74 +157,71 @@
   <div class="grid-container" id="gridBox"></div>
 
   <script>
-    const gridBox = document.getElementById("gridBox");
-    const loading = document.querySelector(".loading");
-    const imgList = [];
+    const gridBox = document.getElementById('gridBox')
+    const loading = document.querySelector('.loading')
+    const imgList = []
 
     async function loadImages() {
       try {
-        const res = await fetch("./images.json");
-        const images = await res.json();
+        const res = await fetch('./images.json')
+        const images = await res.json()
 
-        if (images.length === 0) {
-          loading.textContent = "images 文件夹里没有图片";
-          return;
+        if (!images.length) {
+          loading.textContent = '暂无图片'
+          return
         }
 
         images.forEach(src => {
-          const img = new Image();
-          img.src = src;
+          const img = new Image()
+          img.src = src
           img.onload = () => {
-            createItem(src);
-            imgList.push(src);
-            loading.style.display = "none";
+            createItem(src)
+            imgList.push(src)
+            loading.style.display = 'none'
           }
-        });
+        })
       } catch (e) {
-        loading.textContent = "请先生成图片清单：运行一次 build.js";
+        loading.textContent = '图片清单加载失败'
       }
     }
 
     function createItem(src) {
-      const item = document.createElement("div");
-      item.className = "grid-item";
-      const img = document.createElement("img");
-      img.src = src;
-      img.alt = "图片";
-      item.appendChild(img);
-      gridBox.appendChild(item);
+      const item = document.createElement('div')
+      item.className = 'grid-item'
+      const img = document.createElement('img')
+      img.src = src
+      img.alt = '图片'
+      item.appendChild(img)
+      gridBox.appendChild(item)
 
-      item.addEventListener("mousemove", (e) => {
-        const rect = item.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-        const w = rect.width;
-        const h = rect.height;
+      item.addEventListener('mousemove', e => {
+        const r = item.getBoundingClientRect()
+        const x = e.clientX - r.left
+        const y = e.clientY - r.top
+        const rx = (y / r.height - 0.5) * -9
+        const ry = (x / r.width - 0.5) * 9
+        item.style.transform = `rotateX(${rx}deg) rotateY(${ry}deg) scale(1.1) translateZ(-15px)`
+        item.style.boxShadow = `inset -8px -8px 15px rgba(138,109,255,0.4), 0 0 12px var(--accent-color)`
+      })
 
-        const rx = (y/h-0.5) * -9;
-        const ry = (x/w-0.5) * 9;
-        item.style.transform = `rotateX(${rx}deg) rotateY(${ry}deg) scale(1.09) translateZ(-12px)`;
-        item.style.boxShadow = `inset -8px -8px 15px rgba(138,109,255,0.4), 0 0 12px var(--accent-color)`;
-      });
-
-      item.addEventListener("mouseleave", () => {
-        item.style.transform = "rotateX(0) rotateY(0) scale(1) translateZ(0)";
-        item.style.boxShadow = "none";
-      });
+      item.addEventListener('mouseleave', () => {
+        item.style.transform = 'rotateX(0) rotateY(0) scale(1) translateZ(0)'
+        item.style.boxShadow = 'none'
+      })
     }
 
-    loadImages();
+    loadImages()
 
-    const modeBtn = document.getElementById("modeBtn");
-    const body = document.body;
-    let dark = true;
+    const modeBtn = document.getElementById('modeBtn')
+    const body = document.body
+    let dark = true
     modeBtn.onclick = () => {
-      dark = !dark;
-      body.classList.toggle("light", !dark);
-      modeBtn.innerHTML = dark ? '<i class="fas fa-moon"></i>' : '<i class="fas fa-sun"></i>';
-    };
+      dark = !dark
+      body.classList.toggle('light', !dark)
+      modeBtn.innerHTML = dark ? '<i class="fas fa-moon"></i>' : '<i class="fas fa-sun"></i>'
+    }
 
-    settingBtn.onclick = () => alert(`已加载 ${imgList.length} 张图片`);
+    settingBtn.onclick = () => alert(`已加载 ${imgList.length} 张图片`)
   </script>
 </body>
 </html>
