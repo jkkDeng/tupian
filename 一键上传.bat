@@ -1,11 +1,12 @@
 @echo off
-echo 🚀 自动生成所有主题...
-node build.js
-node music-build.js
-node build.js huoying
-node music-build.js huoying
+echo 🚀 正在自动扫描 所有主题 图片 + 音乐...
+node build-all.js
+
+echo.
 git add .
-git commit -m "更新"
+git commit -m "自动更新资源"
 git push
-echo ✅ 完成
+
+echo.
+echo ✅ 上传完成！
 pause
