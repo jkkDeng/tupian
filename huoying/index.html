@@ -2,35 +2,28 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>火影忍者 - 图片画廊</title>
+  <title>火影忍者</title>
   <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="../css/style.css">
 </head>
 <body>
 
-  <div class="loading-wrapper" id="loading">
-    <div class="loading-spinner"></div>
-    <div>正在加载火影资源...</div>
+<div id="loading" class="loading-wrapper">
+  <div class="loading-spinner"></div>
+  <div>正在加载火影资源...</div>
+</div>
+
+<div id="gridBox" class="grid-container"></div>
+
+<div class="side-menu-wrap">
+  <div class="menu-trigger"></div>
+  <div class="side-menu">
+    <button id="playBtn" class="menu-btn"><i class="fas fa-play"></i></button>
+    <button id="nextBtn" class="menu-btn"><i class="fas fa-step-forward"></i></button>
+    <button id="modeBtn" class="menu-btn"><i class="fas fa-moon"></i></button>
   </div>
+</div>
 
-  <div class="side-menu-wrap" id="floatMenu">
-    <div class="menu-trigger" id="menuTrigger"></div>
-    <div class="side-menu" id="mainMenu">
-      <button class="menu-btn" id="playBtn" title="播放/暂停"><i class="fas fa-play"></i></button>
-      <button class="menu-btn" id="nextBtn" title="下一首"><i class="fas fa-forward"></i></button>
-      <button class="menu-btn" id="modeBtn" title="日夜模式"><i class="fas fa-moon"></i></button>
-      <div class="sub-menu">
-        <button class="menu-btn" id="posLeft" title="靠左"><i class="fas fa-arrow-left"></i></button>
-        <button class="menu-btn" id="posTop" title="靠上"><i class="fas fa-arrow-up"></i></button>
-        <button class="menu-btn" id="posBottom" title="靠下"><i class="fas fa-arrow-down"></i></button>
-        <button class="menu-btn" id="posRight" title="靠右"><i class="fas fa-arrow-right"></i></button>
-      </div>
-    </div>
-  </div>
-
-  <div class="grid-container" id="gridBox"></div>
-
-  <script src="../js/main.js"></script>
+<script src="../js/main.js"></script>
 </body>
 </html>
