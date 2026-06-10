@@ -3,12 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>我的图片画廊</title>
-  <!-- 你可以在这里换成你自己的域名标题 -->
-  
-  <!-- 图标 -->
+  <title>图片画廊</title>
   <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
-  
   <style>
     * {
       margin: 0;
@@ -45,14 +41,15 @@
       transition: 0.4s;
     }
 
-    /* 网格布局 */
+    /* 图片靠左紧凑排列，不居中 */
     .grid-container {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
       gap: 4px;
       padding: 4px;
-      width: 100vw;
-      min-height: 100vh;
+      width: 100%;
+      max-width: 100% !important;
+      justify-content: flex-start;
     }
 
     .grid-item {
@@ -83,13 +80,13 @@
       opacity: 1;
     }
 
-    /* 右侧菜单 */
+    /* 悬浮菜单 */
     .side-menu-wrap {
       position: fixed;
-      top: 50%;
-      right: 0;
-      transform: translateY(-50%);
       z-index: 999999;
+      right: 0;
+      top: 50%;
+      transform: translateY(-50%);
     }
 
     .menu-trigger {
@@ -109,9 +106,32 @@
       transition: transform 0.3s ease;
       display: flex;
       flex-direction: column;
-      gap: 24px;
+      gap: 14px;
       align-items: center;
       box-shadow: -2px 0 10px rgba(0,0,0,0.2);
+    }
+
+    .sub-menu {
+      position: absolute;
+      right: 100%;
+      top: 0;
+      background: var(--menu-bg);
+      width: 52px;
+      padding: 22px 0;
+      border-radius: 6px 0 0 6px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      align-items: center;
+      box-shadow: -2px 0 10px rgba(0,0,0,0.2);
+      opacity: 0;
+      pointer-events: none;
+      transition: 0.3s;
+    }
+
+    .side-menu:hover .sub-menu {
+      opacity: 1;
+      pointer-events: all;
     }
 
     .menu-trigger:hover + .side-menu,
@@ -126,7 +146,7 @@
       border: none;
       background: transparent;
       color: var(--text-color);
-      font-size: 18px;
+      font-size: 16px;
       cursor: pointer;
       display: grid;
       place-items: center;
@@ -138,9 +158,7 @@
       color: #fff;
     }
 
-    /* =================================== */
-    /* 🔥  Loading 加载动画（新版）        */
-    /* =================================== */
+    /* Loading */
     .loading-wrapper {
       position: fixed;
       top: 0;
@@ -167,116 +185,196 @@
       animation: spin 0.8s linear infinite;
     }
 
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
+    @keyframes spin { to { transform: rotate(360deg); } }
   </style>
 </head>
 
 <body>
 
-  <!-- =================================== -->
-  <!-- 🔥  Loading 布局                   -->
-  <!-- =================================== -->
   <div class="loading-wrapper" id="loading">
     <div class="loading-spinner"></div>
-    <div>正在加载图片，请稍候...</div>
+    <div>正在加载资源...</div>
   </div>
 
-  <!-- 菜单 -->
-  <div class="side-menu-wrap">
+  <!-- 右侧悬浮菜单 -->
+  <div class="side-menu-wrap" id="floatMenu">
     <div class="menu-trigger"></div>
     <div class="side-menu">
-      <button class="menu-btn" id="settingBtn"><i class="fas fa-cog"></i></button>
-      <button class="menu-btn" id="modeBtn"><i class="fas fa-moon"></i></button>
+      <button class="menu-btn" id="playBtn" title="播放/暂停"><i class="fas fa-play"></i></button>
+      <button class="menu-btn" id="nextBtn" title="下一首"><i class="fas fa-forward"></i></button>
+      <button class="menu-btn" id="modeBtn" title="日夜模式"><i class="fas fa-moon"></i></button>
+      <div class="sub-menu">
+        <button class="menu-btn" id="posLeft" title="靠左"><i class="fas fa-arrow-left"></i></button>
+        <button class="menu-btn" id="posTop" title="靠上"><i class="fas fa-arrow-up"></i></button>
+        <button class="menu-btn" id="posBottom" title="靠下"><i class="fas fa-arrow-down"></i></button>
+        <button class="menu-btn" id="posRight" title="靠右"><i class="fas fa-arrow-right"></i></button>
+      </div>
     </div>
   </div>
 
-  <!-- 图片网格 -->
   <div class="grid-container" id="gridBox"></div>
 
   <script>
     const grid = document.getElementById('gridBox')
     const loading = document.getElementById('loading')
-    let imgCount = 0
-    let loadedCount = 0
+    const floatMenu = document.getElementById('floatMenu')
+    let imgList = []
+    let musicList = []
+    let audio = new Audio()
+    let currentMusic = 0
+    let isPlaying = false
+
+    // 自动识别主题目录
+    const path = window.location.pathname
+    const theme = path.split('/')[1] || ''
+    const base = theme ? `/${theme}` : ''
+    const imgDir = `${base}/images`
+    const musicDir = `${base}/music`
 
     // 加载图片清单
-    window.addEventListener('DOMContentLoaded', async () => {
-      try {
-        const res = await fetch('./images.json')
-        const list = await res.json()
-        imgCount = list.length
+    async function loadImages() {
+      const res = await fetch(`${base}/images.json`)
+      const list = await res.json()
+      imgList = list
+      showImages()
+    }
 
-        if (imgCount === 0) {
-          loading.querySelector('div:last-child').innerText = "暂无图片"
-          return
+    // 加载音乐清单
+    async function loadMusic() {
+      try {
+        const res = await fetch(`${base}/music.json`)
+        const list = await res.json()
+        musicList = list
+        if (list.length > 0) autoPlay()
+      } catch (e) {}
+    }
+
+    // 显示图片 + 点击复制
+    function showImages() {
+      imgList.forEach((src, i) => {
+        const item = document.createElement('div')
+        item.className = 'grid-item'
+        const img = document.createElement('img')
+        img.src = src
+        img.alt = ''
+        item.appendChild(img)
+        grid.appendChild(item)
+
+        // 点击复制图片
+        item.onclick = () => copyImage(src)
+
+        // 3D效果
+        item.onmousemove = (e) => {
+          const r = item.getBoundingClientRect()
+          const rx = (e.clientY - r.top) / r.height - 0.5
+          const ry = (e.clientX - r.left) / r.width - 0.5
+          item.style.transform = `rotateX(${rx * -9}deg) rotateY(${ry * 9}deg) scale(1.1)`
+          item.style.boxShadow = 'inset -8px -8px 15px rgba(138,109,255,.4), 0 0 12px #8a6dff'
+        }
+        item.onmouseleave = () => {
+          item.style.transform = ''
+          item.style.boxShadow = ''
         }
 
-        list.forEach(src => {
-          const img = new Image()
-          img.src = src
+        // 网站图标 = 第一张图
+        if (i === 0) {
+          const link = document.createElement('link')
+          link.rel = 'icon'
+          link.href = src
+          document.head.appendChild(link)
+        }
+      })
 
-          img.onload = () => {
-            loadedCount++
-            createItem(src)
-            
-            // 全部加载完 → 关闭 loading
-            if (loadedCount === imgCount) {
-              setTimeout(() => {
-                loading.style.opacity = '0'
-                setTimeout(() => loading.style.display = 'none', 300)
-              }, 400)
-            }
-          }
+      setTimeout(() => {
+        loading.style.opacity = 0
+        setTimeout(() => loading.style.display = 'none', 300)
+      }, 500)
+    }
 
-          img.onerror = () => {
-            loadedCount++
-          }
-        })
-
+    // 复制图片（可粘贴微信）
+    async function copyImage(src) {
+      try {
+        const blob = await (await fetch(src)).blob()
+        const item = new ClipboardItem({ 'image/png': blob })
+        await navigator.clipboard.write([item])
+        alert('✅ 图片已复制，可直接粘贴到微信')
       } catch (e) {
-        loading.querySelector('div:last-child').innerText = "加载失败，请刷新"
+        alert('❌ 复制失败')
       }
-    })
+    }
 
-    // 创建图片项
-    function createItem(src) {
-      const item = document.createElement('div')
-      item.className = 'grid-item'
-      const img = document.createElement('img')
-      img.src = src
-      img.alt = ''
-      item.appendChild(img)
-      grid.appendChild(item)
+    // 自动播放音乐
+    function autoPlay() {
+      playMusic(0)
+      audio.loop = false
+      audio.onended = () => {
+        currentMusic = (currentMusic + 1) % musicList.length
+        playMusic(currentMusic)
+      }
+    }
 
-      // 3D 效果
-      item.addEventListener('mousemove', e => {
-        const r = item.getBoundingClientRect()
-        const rx = (e.clientY - r.top) / r.height - 0.5
-        const ry = (e.clientX - r.left) / r.width - 0.5
-        item.style.transform = `rotateX(${rx * -9}deg) rotateY(${ry * 9}deg) scale(1.1)`
-        item.style.boxShadow = 'inset -8px -8px 15px rgba(138,109,255,.4), 0 0 12px #8a6dff'
-      })
+    function playMusic(i) {
+      currentMusic = i
+      audio.src = musicList[i]
+      audio.play()
+      isPlaying = true
+      playBtn.innerHTML = '<i class="fas fa-pause"></i>'
+    }
 
-      item.addEventListener('mouseleave', () => {
-        item.style.transform = ''
-        item.style.boxShadow = ''
-      })
+    // 播放/暂停
+    playBtn.onclick = () => {
+      if (musicList.length === 0) return
+      isPlaying ? audio.pause() : audio.play()
+      isPlaying = !isPlaying
+      playBtn.innerHTML = isPlaying ? '<i class="fas fa-pause"></i>' : '<i class="fas fa-play"></i>'
+    }
+
+    // 下一首
+    nextBtn.onclick = () => {
+      if (musicList.length < 2) return
+      currentMusic = (currentMusic + 1) % musicList.length
+      playMusic(currentMusic)
+    }
+
+    // 悬浮菜单位置
+    posLeft.onclick = () => {
+      floatMenu.style.right = 'auto'
+      floatMenu.style.left = '0'
+      floatMenu.style.top = '50%'
+      floatMenu.style.transform = 'translateY(-50%)'
+    }
+    posRight.onclick = () => {
+      floatMenu.style.left = 'auto'
+      floatMenu.style.right = '0'
+      floatMenu.style.top = '50%'
+      floatMenu.style.transform = 'translateY(-50%)'
+    }
+    posTop.onclick = () => {
+      floatMenu.style.left = '50%'
+      floatMenu.style.right = 'auto'
+      floatMenu.style.top = '0'
+      floatMenu.style.bottom = 'auto'
+      floatMenu.style.transform = 'translateX(-50%)'
+    }
+    posBottom.onclick = () => {
+      floatMenu.style.left = '50%'
+      floatMenu.style.right = 'auto'
+      floatMenu.style.top = 'auto'
+      floatMenu.style.bottom = '0'
+      floatMenu.style.transform = 'translateX(-50%)'
     }
 
     // 日夜模式
-    const modeBtn = document.getElementById('modeBtn')
-    const body = document.body
     let dark = true
     modeBtn.onclick = () => {
       dark = !dark
-      body.classList.toggle('light', !dark)
+      document.body.classList.toggle('light', !dark)
       modeBtn.innerHTML = dark ? '<i class="fas fa-moon"></i>' : '<i class="fas fa-sun"></i>'
     }
 
-    // 设置
-    settingBtn.onclick = () => alert(`已加载 ${loadedCount} 张图片`)
+    // 启动
+    loadImages()
+    loadMusic()
   </script>
 </body>
 </html>
