@@ -6,7 +6,8 @@ const path = require('path')
 // ==========================
 const THEMES = [
   '',          // 根目录（主站）
-  'huoying'    // 火影主题
+  'huoying', // 火影主题
+  "yanlili"
 ]
 
 // 支持的图片格式
